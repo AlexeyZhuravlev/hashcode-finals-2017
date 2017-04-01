@@ -33,7 +33,7 @@ const int inf = (int)1e9; //add this
 bool used[(int)1e6]; //add this
 int d[(int)1e6]; //add this
 int p[(int)1e6]; //add this
-const int MAX_ADDITIONAL_ROUTERS = 100;
+const int MAX_ADDITIONAL_ROUTERS = 1000;
 
 const int MAX_N = 1005;
 const double routers_part_of_budget = 0.95;
@@ -45,7 +45,7 @@ int price_b, price_r, budget;
 pii initial_backbone;
 string layout[MAX_N];
 
-set<pii> builded_backbones;
+bool backbone_map[MAX_N][MAX_N]; // DIMA
 vector<pii> backbone_ans, router_ans;
 
 int sum[MAX_N][MAX_N];
@@ -58,8 +58,6 @@ int sum[MAX_N][MAX_N];
 int calc_cost();
 vector <pii> get_all_covered(const vector <pii> & routers);
 // ----------------------------------------------
-
-
 
 
 
@@ -86,8 +84,8 @@ bool valid_coords(pii p) {
 }
 
 void validate() {
-    int n = backbone_ans.size();
-    int m = router_ans.size();
+    int n = (int)backbone_ans.size();
+    int m = (int)router_ans.size();
     set<pii> uniq_b(backbone_ans.begin(), backbone_ans.end());
     set<pii> uniq_r(router_ans.begin(), router_ans.end());
     assert(n == (int)uniq_b.size() && "backbones should be unique");
@@ -211,8 +209,7 @@ int get_dist(const pii &a, const pii &b) { //add this
     return max(abs(a.fi - b.fi), abs(a.se - b.se));
 }
 
-void build_dist(pii a, const pii &b) {
-    cerr << "(" << a.fi << ";" << a.se << ")" << "->" << "(" << b.fi << ";" << b.se << ")" << endl;
+void build_dist(pii a, const pii &b) { // DIMA
     int x = abs(a.fi - b.fi);
     int y = abs(a.se - b.se);
     while (x != y) {
@@ -221,17 +218,17 @@ void build_dist(pii a, const pii &b) {
         } else {
             a.se += (b.se - a.se) / y--;
         }
-        if (builded_backbones.find(a) == builded_backbones.end()) {
+        if (!backbone_map[a.fi][a.se]) {
             backbone_ans.push_back(a);
-            builded_backbones.insert(a);
+            backbone_map[a.fi][a.se] = true;
         }
     }
     while (x != 0) {
         a.fi += (b.fi - a.fi) / x;
         a.se += (b.se - a.se) / x;
-        if (builded_backbones.find(a) == builded_backbones.end()) {
+        if (!backbone_map[a.fi][a.se]) {
             backbone_ans.push_back(a);
-            builded_backbones.insert(a);
+            backbone_map[a.fi][a.se] = true;
         }
         x--;
     }
@@ -240,7 +237,7 @@ void build_dist(pii a, const pii &b) {
 
 int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { //add this
     backbone_ans.clear();
-    builded_backbones.clear();
+    memset(backbone_map, 0, sizeof(backbone_map));
     
     int n = (int)router_ans.size() + (int)additional.size();
     int ans = 0;
@@ -298,7 +295,7 @@ int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { /
 
 
 
-void build_backbones() { //add this
+void build_backbones(bool optimize = false) { // DIMA
     cerr <<"Number of routesrs: " << router_ans.size() << endl;
     for(int i = 0; i < router_ans.size(); i++) {
         cerr <<router_ans[i].fi << " " << router_ans[i].se << endl;
@@ -309,32 +306,41 @@ void build_backbones() { //add this
     int cur_ans = get_tree_size(additional, inf);
     backbone_ans.clear();
     cerr << "0. Current backbones price = " <<cur_ans << endl;
+    if (optimize) {
+        priority_queue<pair<int, pii> > potentional;
     
-    /*bool update = true;
-    for(int k = 0; k < MAX_ADDITIONAL_ROUTERS && update; k++) {
-        update = false;
-        int mxi, mxj;
+        cerr << "Get potentional additional points" << endl;
         additional.push_back(mp(0, 0));
         forn(i, h) {
+            if (i > 0 && (i+1) % 10 == 0) {
+                cerr << i+1 << "/" << h << " rows done" << endl;
+            }
             forn(j, w) {
-                additional[k] = mp(i, j);
+                additional[0] = mp(i, j);
                 int cur = get_tree_size(additional, cur_ans);
                 if (cur_ans > cur) {
-                    update = true;
-                    mxi = i;
-                    mxj = j;
-                    cur_ans = cur;
+                    potentional.push({cur, {i, j}});
                 }
             }
         }
-        additional[k] = mp(mxi, mxj);
-        cerr << k+1 << ". Current backbones price = " << cur_ans << endl;
-        if (!update) {
-            cerr << "Break" << endl;
-            additional.pop_back();
-        }
-    }*/
+        cerr << potentional.size() << "potentional points found" << endl;
+        additional.pop_back();
+
     
+        bool update = true;
+        for(int k = 0; k < MAX_ADDITIONAL_ROUTERS && additional.size() > 0;) {
+            additional.push_back(potentional.top().se);
+            potentional.pop();
+            int cur = get_tree_size(additional, cur_ans);
+            if (cur_ans > cur) {
+                cur_ans = cur;
+                k++;
+                cerr << k << ". Current backbones price = " << cur_ans << endl;
+            } else {
+                additional.pop_back();
+            }
+        }
+    }
     get_tree_size(additional, inf, true);
     router_ans.pop_back();
 }
@@ -353,10 +359,6 @@ int main(int argc, const char * argv[]) {
     
     read_input();
     solve();
-    cerr << h << " " << w << endl;
-    cerr <<router_ans.size() << endl;
-    for (pii router : router_ans)
-        fprintf(stderr, "router %d %d\n", router.fi, router.se);
     build_backbones();
     write_result();
     validate();
