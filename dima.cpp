@@ -29,6 +29,12 @@ typedef long long ll;
 #define forn(i, n) for (int i = 0; i < (int)n; i++)
 #define fore(i, b, e) for (int i = (int)b; i <= (int)e; i++)
 
+const int inf = (int)1e9; //add this
+bool used[(int)1e6]; //add this
+int d[(int)1e6]; //add this
+int p[(int)1e6]; //add this
+const int MAX_ADDITIONAL_ROUTERS = 100;
+
 const int MAX_N = 1005;
 const double routers_part_of_budget = 0.95;
 const int DX[8] = {-1, -1, -1, 0, 0, 1, 1, 1};
@@ -198,6 +204,125 @@ void solve()
             }
 }
 
+
+int get_dist(const pii &a, const pii &b) { //add this
+    return max(abs(a.fi - b.fi), abs(a.se - b.se));
+}
+
+void build_dist(pii a, const pii &b) {
+    int x = abs(a.fi - b.fi);
+    int y = abs(a.se - b.se);
+    while (x != y) {
+        if (x > y) {
+            a.fi += (b.fi - a.fi) / x--;
+        } else {
+            a.se += (b.se - a.se) / y--;
+        }
+        backbone_ans.push_back(a);
+    }
+    while (x != 0) {
+        a.fi += (b.fi - a.fi) / x;
+        a.se += (b.se - a.se) / x;
+        backbone_ans.push_back(a);
+        x--;
+    }
+}
+
+
+int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { //add this
+    int n = (int)router_ans.size() + (int)additional.size();
+    int ans = 0;
+    memset(d, 0x3f, n * sizeof(int));
+    memset(used, 0, n * sizeof(bool));
+    d[router_ans.size()-1] = 0;
+    for(int i = 0; i < n; i++) {
+        int mn = inf;
+        int mni = -1;
+        for(int j = 0; j < n; j++) {
+            if (!used[j] && d[j] < mn) {
+                mni = j;
+                mn = d[j];
+            }
+        }
+        ans += d[mni];
+        if (ans >= mx) {
+            return ans;
+        }
+        used[mni] = true;
+        pii mnpoint;
+        if (mni < (int)router_ans.size()) {
+            mnpoint = router_ans[mni];
+        } else {
+            mnpoint = additional[mni - router_ans.size()];
+        }
+        
+        if (build) {
+            pii last;
+            if (p[mni] < (int)router_ans.size()) {
+                last = router_ans[p[mni]];
+            } else {
+                last = additional[p[mni] - router_ans.size()];
+            }
+            build_dist(last, mnpoint);
+        }
+        
+        
+        for(int j = 0; j < (int)router_ans.size(); j++) {
+            if (!used[j] && d[j+router_ans.size()] > get_dist(mnpoint, router_ans[j])) {
+                d[j] = get_dist(mnpoint, router_ans[j]);
+                p[j] = mni;
+            }
+        }
+        for(int j = 0; j < (int)additional.size(); j++) {
+            if (!used[j+router_ans.size()] && d[j+router_ans.size()] > get_dist(mnpoint, additional[j])) {
+                d[j+router_ans.size()] = get_dist(mnpoint, additional[j]);
+                p[j+router_ans.size()] = mni;
+            }
+        }
+    }
+    return ans;
+}
+
+
+
+
+void build_backbones() { //add this
+    router_ans.push_back(initial_backbone);
+    
+    vector<pii> additional;
+    int cur_ans = get_tree_size(additional, inf);
+    backbone_ans.clear();
+    cerr << "0. Current backbones price = " <<cur_ans << endl;
+    
+    bool update = true;
+    for(int k = 0; k < MAX_ADDITIONAL_ROUTERS && update; k++) {
+        update = false;
+        int mxi, mxj;
+        additional.push_back(mp(0, 0));
+        forn(i, h) {
+            forn(j, w) {
+                additional[k] = mp(i, j);
+                int cur = get_tree_size(additional, cur_ans);
+                if (cur_ans > cur) {
+                    update = true;
+                    mxi = i;
+                    mxj = j;
+                    cur_ans = cur;
+                }
+            }
+        }
+        additional[k] = mp(mxi, mxj);
+        cerr << k+1 << ". Current backbones price = " << cur_ans << endl;
+        if (!update) {
+            cerr << "Break" << endl;
+        }
+    }
+    
+    get_tree_size(additional, inf, true);
+    router_ans.pop_back();
+}
+
+
 int main(int argc, const char * argv[]) {
     // this is my comment
     if( argc < 2 ) {
@@ -211,8 +336,9 @@ int main(int argc, const char * argv[]) {
     
     read_input();
     solve();
-    for (pii router : router_ans)
-        fprintf(stderr, "router %d %d\n", router.fi, router.se);
+    build_backbones();
+    //for (pii router : router_ans)
+    //    fprintf(stderr, "router %d %d\n", router.fi, router.se);
     write_result();
     validate();
     int result = calc_result();
