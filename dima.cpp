@@ -372,7 +372,8 @@ vector <pii> get_covered(pii router, const vector <vector<bool> >& covered ) {
 }
 
 double calc_pot(int covered, int dist) {
-    return covered * log(1 + dist);
+    //return covered + (dist == 0 ? 0 : 1. / dist);
+    return covered;
 }
 
 
@@ -416,12 +417,14 @@ void solve()
             continue;
         }
         
+        if (best.fi == 0)
+            break;
         place_router( covered, coors );
-        // cerr << "Current poten: " << poten << endl;
+        cerr << "Current poten: " << best.fi << endl;
         router_ans.push_back( coors );
         
-        for( int dx = -r; dx <= r; dx++) {
-            for( int dy = -r; dy <= r; dy++ ) {
+        for( int dx = -2 * r; dx <= 2 * r; dx++) {
+            for( int dy = -2 * r; dy <= 2 * r; dy++ ) {
                 pii coor = make_pair( coors.first + dx, coors.second + dy );
                 if( !val_coor( coor.first, coor.second ) ) {
                     continue;
@@ -453,7 +456,7 @@ int main(int argc, const char * argv[]) {
      for (pii router : router_ans)
      fprintf(stderr, "router %d %d\n", router.fi, router.se);
      */
-    build_backbones(true);
+    build_backbones(false);
     write_result();
     validate();
     int result = calc_result();
