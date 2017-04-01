@@ -29,7 +29,7 @@ typedef long long ll;
 #define forn(i, n) for (int i = 0; i < (int)n; i++)
 #define fore(i, b, e) for (int i = (int)b; i <= (int)e; i++)
 
-const int MAX_N = 10005;
+const int MAX_N = 1005;
 const int DX[8] = {-1, -1, -1, 0, 0, 1, 1, 1};
 const int DY[8] = {-1, 0, 1, -1, 1, -1, 0, 1};
 
@@ -87,6 +87,8 @@ void validate() {
         }
         assert(good && "backbones must be connected");
     }
+    int cost = backbone_ans.size() * price_b + router_ans.size() * price_r;
+    assert(cost <= budet && "must not exceed budget");
 }
 
 void write_result()
