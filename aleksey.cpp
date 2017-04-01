@@ -36,7 +36,7 @@ int p[(int)1e6]; //add this
 const int MAX_ADDITIONAL_ROUTERS = 100;
 
 const int MAX_N = 1005;
-const double routers_part_of_budget = 0.95;
+const double routers_part_of_budget = 0.75;
 const int DX[8] = {-1, -1, -1, 0, 0, 1, 1, 1};
 const int DY[8] = {-1, 0, 1, -1, 1, -1, 0, 1};
 
@@ -132,7 +132,6 @@ int calc_result()
 }
 
 void print_vpii(const vector<pii>& v) {
-    cerr << "Writing result" << endl;
     cout << v.size() << endl;
     for (const auto& p : v) {
         cout << p.fi << " " << p.se << endl;
@@ -194,7 +193,6 @@ int get_dist(const pii &a, const pii &b) { //add this
 }
 
 void build_dist(pii a, const pii &b) {
-    cerr << "(" << a.fi << ";" << a.se << ")" << "->" << "(" << b.fi << ";" << b.se << ")" << endl;
     int x = abs(a.fi - b.fi);
     int y = abs(a.se - b.se);
     while (x != y) {
@@ -281,10 +279,12 @@ int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { /
 
 
 void build_backbones() { //add this
+    /*
     cerr <<"Number of routesrs: " << router_ans.size() << endl;
     for(int i = 0; i < router_ans.size(); i++) {
         cerr <<router_ans[i].fi << " " << router_ans[i].se << endl;
     }
+    */
     router_ans.push_back(initial_backbone);
     
     vector<pii> additional;
@@ -332,8 +332,7 @@ vector <pii> get_covered(pii router, const vector <vector<bool> >& covered ) {
 }
 
 double calc_pot(int covered, int dist) {
-    double con = 0.00000001;
-    return covered;
+    return covered * log(1 + dist);
 }
 
 bool val_coor( int r, int c ) {
@@ -381,7 +380,7 @@ void solve()
 
         place_router( covered, coors );
         double poten = best.first;
-        cerr << "Current poten: " << poten << endl;
+       // cerr << "Current poten: " << poten << endl;
         router_ans.push_back( coors );
         remain_budget -= price_r;
 
@@ -413,9 +412,11 @@ int main(int argc, const char * argv[]) {
     read_input();
     solve();
     cerr << h << " " << w << endl;
+    /*
     cerr <<router_ans.size() << endl;
     for (pii router : router_ans)
         fprintf(stderr, "router %d %d\n", router.fi, router.se);
+        */
     build_backbones();
     write_result();
     validate();
