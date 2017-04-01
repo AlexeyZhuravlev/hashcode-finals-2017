@@ -332,7 +332,8 @@ vector <pii> get_covered(pii router, const vector <vector<bool> >& covered ) {
 }
 
 double calc_pot(int covered, int dist) {
-    return covered * exp( -dist * price_b );
+    double con = 0.00000001;
+    return covered;
 }
 
 bool val_coor( int r, int c ) {
@@ -379,6 +380,8 @@ void solve()
         }
 
         place_router( covered, coors );
+        double poten = best.first;
+        cerr << "Current poten: " << poten << endl;
         router_ans.push_back( coors );
         remain_budget -= price_r;
 
@@ -390,6 +393,7 @@ void solve()
                 }
                 double cost = calc_poten( coor, covered );
                 pots.insert( make_pair(cost, coor ) );
+                pots_v[coor.first][coor.second] = cost;
             }
         }
     }
