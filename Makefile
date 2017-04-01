@@ -1,5 +1,5 @@
 CC=g++
-FLAGS=-std=c++11
+FLAGS=-std=c++11 -O2 -Wall
 
 aleksey: aleksey.cpp
 	$(CC) $^ $(FLAGS) -o $@
