@@ -88,7 +88,7 @@ int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { /
         }
         used[mni] = true;
         pii mnpoint;
-        if (mni < router_ans.size()) {
+        if (mni < (int)router_ans.size()) {
             mnpoint = router_ans[mni];
         } else {
             mnpoint = additional[mni - router_ans.size()];
@@ -96,7 +96,7 @@ int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { /
         
         if (build) {
             pii last;
-            if (p[mni] < router_ans.size()) {
+            if (p[mni] < (int)router_ans.size()) {
                 last = router_ans[p[mni]];
             } else {
                 last = additional[p[mni] - router_ans.size()];
@@ -105,13 +105,13 @@ int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { /
         }
         
         
-        for(int j = 0; j < router_ans.size(); j++) {
+        for(int j = 0; j < (int)router_ans.size(); j++) {
             if (!used[j] && d[j+router_ans.size()] > get_dist(mnpoint, router_ans[j])) {
                 d[j] = get_dist(mnpoint, router_ans[j]);
                 p[j] = mni;
             }
         }
-        for(int j = 0; j < additional.size(); j++) {
+        for(int j = 0; j < (int)additional.size(); j++) {
             if (!used[j+router_ans.size()] && d[j+router_ans.size()] > get_dist(mnpoint, additional[j])) {
                 d[j+router_ans.size()] = get_dist(mnpoint, additional[j]);
                 p[j+router_ans.size()] = mni;
@@ -146,6 +146,7 @@ void build_backbones() { //add this
                 }
             }
         }
+        additional[k] = mp(mxi, mxj);
         cerr << k+1 << ". Current backbones price = " << cur_ans << endl;
         if (!update) {
             cerr << "Break" << endl;
@@ -171,8 +172,8 @@ void validate() {
     int m = (int)router_ans.size();
     set<pii> uniq_b(backbone_ans.begin(), backbone_ans.end());
     set<pii> uniq_r(router_ans.begin(), router_ans.end());
-    assert(n == uniq_b.size() && "backbones should be unique");
-    assert(m == uniq_r.size() && "routers should be unique");
+    assert(n == (int)uniq_b.size() && "backbones should be unique");
+    assert(m == (int)uniq_r.size() && "routers should be unique");
     for (auto p : backbone_ans) {
         assert(p.fi >= 0 && p.fi < h && "backbones coords must be in range");
         assert(p.se >= 0 && p.se < w && "backbones coords must be in range");
@@ -185,17 +186,14 @@ void validate() {
 
 void write_result()
 {
-    cout << c;
 }
 
 void solve()
 {
-    c = a + b;
 }
 
 double calc_result()
 {
-    return a + b;
 }
 
 int main(int argc, const char * argv[]) {
