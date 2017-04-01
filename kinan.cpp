@@ -51,6 +51,7 @@ double calc_result()
 }
 
 int main(int argc, const char * argv[]) {
+    // this is my comment
     if( argc < 2 ) {
         cout << "Specify filename";
         return -1;
