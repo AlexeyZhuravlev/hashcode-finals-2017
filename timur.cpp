@@ -33,7 +33,8 @@ const int inf = (int)1e9; //add this
 bool used[(int)1e6]; //add this
 int d[(int)1e6]; //add this
 int p[(int)1e6]; //add this
-const int MAX_ADDITIONAL_ROUTERS = 100;
+const int MAX_ADDITIONAL_ROUTERS = 2000;
+const int MAX_POTENTIAL_COUNT = 10000;
 
 const int MAX_N = 1005;
 const double routers_part_of_budget = 0.92;
@@ -46,6 +47,8 @@ pii initial_backbone;
 string layout[MAX_N];
 
 bool backbone_map[MAX_N][MAX_N]; // DIMA
+
+vector<pii> potentionals;
 
 vector<pii> backbone_ans, router_ans;
 
@@ -225,6 +228,7 @@ int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { /
         backbone_ans.clear();
         memset(backbone_map, 0, sizeof(backbone_map));
     }
+    
     int n = (int)router_ans.size() + (int)additional.size();
     int ans = 0;
     memset(d, 0x3f, n * sizeof(int));
@@ -261,7 +265,6 @@ int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { /
             build_dist(last, mnpoint);
         }
         
-        
         for(int j = 0; j < (int)router_ans.size(); j++) {
             if (!used[j] && d[j] > get_dist(mnpoint, router_ans[j])) {
                 d[j] = get_dist(mnpoint, router_ans[j]);
@@ -291,36 +294,62 @@ void build_backbones(bool optimize = false) { // HERE YOBA
     vector<pii> additional;
     int cur_ans = get_tree_size(additional, inf);
     
-    cerr << "0. Current backbones price = " <<cur_ans << endl;
+    cerr << "0. Current backbones count = " <<cur_ans << endl;
     if (optimize) {
-        priority_queue<pair<int, pii> > potentional;
+        if (potentionals.size() == 0) {
+            priority_queue<pair<int, pii> > potentional;
         
-        cerr << "Get potentional additional points" << endl;
-        additional.push_back(mp(0, 0));
-        forn(i, h) {
-            if (i > 0 && (i+1) % 10 == 0) {
-                cerr << i+1 << "/" << h << " rows done" << endl;
-            }
-            forn(j, w) {
-                additional[0] = mp(i, j);
-                int cur = get_tree_size(additional, cur_ans);
-                if (cur_ans > cur) {
-                    potentional.push({cur, {i, j}});
+            cerr << "Get potentional additional points" << endl;
+            additional.push_back(mp(0, 0));
+            forn(i, h) {
+                if (i > 0 && (i+1) % 10 == 0) {
+                    cerr << i+1 << "/" << h << " rows done" << endl;
+                }
+                forn(j, w) {
+                    bool up = false;
+                    bool down = false;
+                    bool left = false;
+                    bool right = false;
+                    vector<pii> routers;
+                    for(int r = 0; r < router_ans.size(); r++) {
+                        if (router_ans[r].fi <= i)
+                            up = true;
+                        if (router_ans[r].fi >= i)
+                            down = true;
+                        if (router_ans[r].se <= j)
+                            left = true;
+                        if (router_ans[r].se >= j)
+                            right = true;
+                    }
+                    if (up && down && left && right) {//&& closest <= CLOSEST_MAX && closest >=     CLOSEST_MIN)
+                        additional[0] = mp(i, j);
+                        int cur = get_tree_size(additional, cur_ans);
+                        if (cur_ans > cur) {
+                            potentional.push({cur_ans - cur, {i, j}});
+                            
+                        }
+                    }
                 }
             }
+            int psize = potentional.size();
+            cerr << psize << " potentional points found" << endl;
+            for(int i = 0; i < min(MAX_POTENTIAL_COUNT, psize); i++) {
+                potentionals.push_back(potentional.top().se);
+                potentional.pop();
+            }
         }
-        cerr << potentional.size() << "potentional points found" << endl;
         additional.pop_back();
         
-        
-        for(int k = 0; k < MAX_ADDITIONAL_ROUTERS && additional.size() > 0;) {
-            additional.push_back(potentional.top().se);
-            potentional.pop();
+        for(int k = 0, i = 0; i < potentionals.size();i++) {
+            additional.push_back(potentionals[i]);
+            
             int cur = get_tree_size(additional, cur_ans);
             if (cur_ans > cur) {
                 cur_ans = cur;
                 k++;
-                cerr << k << ". Current backbones price = " << cur_ans << endl;
+                if (k % 10 == 0) {
+                    cerr << k << ". Current backbones count = " << cur_ans << ", potentional = " << i+1 << "/" << potentionals.size() << endl;
+                }
             } else {
                 additional.pop_back();
             }
