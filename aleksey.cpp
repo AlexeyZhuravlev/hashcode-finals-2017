@@ -515,13 +515,13 @@ int main(int argc, const char * argv[]) {
 
     cerr << "Current result " << current_result << endl;
 
-    int NUM_ITERS = 20;
+    int NUM_ITERS = 100;
 
     int best_result = current_result;
     for( int i = 0; i < NUM_ITERS; i++ ) {
         cerr << "Removing iteration " << i << endl;
         vector<pii> old_ans = router_ans;
-        double ratio = ((double) rand() / (RAND_MAX));
+        double ratio = 0.5 + (((double) rand() / (RAND_MAX)) / 2);
         remove_fucking_routers( ratio );
         current_result = calc_result();
         cerr << "Current result " << current_result << endl;
