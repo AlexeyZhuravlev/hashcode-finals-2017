@@ -73,16 +73,17 @@ void calc_all_dist() {
             if (backbone_map[i][j]) {
                 Q.push(mp(i, j));
                 dist_to_backbone[i][j] = 0;
-            } else dist_to_backbone[i][j] = inf;
+            }
     while(!Q.empty()) {
         pii cur = Q.front();
         Q.pop();
         forn(move, 8) {
             int x = cur.fi + DX[move];
             int y = cur.se + DY[move];
-            if (!val_coor(x, y) || dist_to_backbone[x][y] != inf)
+            int newd = dist_to_backbone[cur.fi][cur.se] + 1;
+            if (!val_coor(x, y) || dist_to_backbone[x][y] <= newd || layout[x][y] == '#')
                 continue;
-            dist_to_backbone[x][y] = dist_to_backbone[cur.fi][cur.se] + 1;
+            dist_to_backbone[x][y] = newd;
             Q.push(mp(x, y));
         }
     }
@@ -113,6 +114,9 @@ void read_input()
         cin >> layout[i];
     }
     precalc();
+    forn(i, h)
+        forn(j, w)
+            dist_to_backbone[i][j] = inf;
     recalc_dist();
 }
 
@@ -371,8 +375,10 @@ vector <pii> get_covered(pii router, const vector <vector<bool> >& covered ) {
     return result;
 }
 
+pii last;
+
 double calc_pot(int covered, int dist) {
-    return covered + (dist == 0 ? 0 : 1. / dist);
+    //return covered - 10. / (1 + dist);
     return covered;
 }
 
@@ -381,7 +387,7 @@ double calc_poten( pii place, const vector<vector<bool> >& covered )
 {
     int covered1 = get_covered( place, covered ).size();
     int backbone_dist = dist_to_backbone[place.fi][place.se];
-    return -calc_pot( covered1, backbone_dist );
+    return -calc_pot( covered1, backbone_dist ) - 1. / get_dist(place, last);
 }
 
 int get_cur_budget() {
@@ -405,8 +411,12 @@ void solve( vector<vector<bool> >& covered )
             }
         }
     }
-    
-    while(get_cur_budget() < budget - 2 * price_r ) {
+   
+    vector <vector<bool> > router_here(h);
+    forn(j, h)
+        router_here[j].resize(w);
+    last = mp(h / 2, w / 2);
+    while(get_cur_budget() < budget - 1.5 * price_r ) {
         pair<double, pii> best = *pots.begin();
         pots.erase( pots.begin() );
         pii coors = best.second;
@@ -420,11 +430,13 @@ void solve( vector<vector<bool> >& covered )
         place_router( covered, coors );
         cerr << "Current poten: " << best.fi << endl;
         router_ans.push_back( coors );
+        router_here[coors.fi][coors.se] = true;
+        last = coors;
         
         for( int dx = -2 * r; dx <= 2 * r; dx++) {
             for( int dy = -2 * r; dy <= 2 * r; dy++ ) {
                 pii coor = make_pair( coors.first + dx, coors.second + dy );
-                if( !val_coor( coor.first, coor.second ) ) {
+                if( !val_coor( coor.first, coor.second )  || router_here[coor.first][coor.se]) {
                     continue;
                 }
                 double cost = calc_poten( coor, covered );
@@ -478,7 +490,6 @@ void remove_fucking_routers( double remove_ratio )
 }
 
 int main(int argc, const char * argv[]) {
-
     // this is my comment
     if( argc < 2 ) {
         cout << "Specify filename";
@@ -497,7 +508,18 @@ int main(int argc, const char * argv[]) {
     }
 
     solve( covered );
-    remove_fucking_routers( 0.1 );
+
+    int current_result = calc_result();
+
+    cerr << "Current result " << current_result << endl;
+
+    int NUM_ITERS = 20;
+    for( int i = 0; i < NUM_ITERS; i++ ) {
+        cerr << "Removing iteration " << i << endl;
+        remove_fucking_routers( 0.5 );
+        current_result = calc_result();
+        cerr << "Current result " << current_result << endl;
+    }
     cerr << h << " " << w << endl;
     /*
      cerr <<router_ans.size() << endl;
