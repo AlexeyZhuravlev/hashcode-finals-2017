@@ -36,7 +36,7 @@ int p[(int)1e6]; //add this
 const int MAX_ADDITIONAL_ROUTERS = 100;
 
 const int MAX_N = 1005;
-const double routers_part_of_budget = 0.9;
+const double routers_part_of_budget = 0.85;
 const int DX[8] = {-1, -1, -1, 0, 0, 1, 1, 1};
 const int DY[8] = {-1, 0, 1, -1, 1, -1, 0, 1};
 
@@ -281,7 +281,7 @@ int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { /
 void build_backbones() { //add this
     /*
     cerr <<"Number of routesrs: " << router_ans.size() << endl;
-    for(int i = 0; i < (int)router_ans.size(); i++) {
+    for(int i = 0; i < router_ans.size(); i++) {
         cerr <<router_ans[i].fi << " " << router_ans[i].se << endl;
     }
     */
@@ -332,7 +332,7 @@ vector <pii> get_covered(pii router, const vector <vector<bool> >& covered ) {
 }
 
 double calc_pot(int covered, int dist) {
-    return covered * log(1 + dist);
+    return covered;
 }
 
 bool val_coor( int r, int c ) {
@@ -368,27 +368,24 @@ void solve()
     }
 
     int remain_budget = router_budget;
-    vector<vector<bool>> router_placed(h);
-    forn(j, h)
-        router_placed[j].resize(w);
+    
     while( remain_budget >= price_r ) {
         pair<double, pii> best = *pots.begin();
         pots.erase( pots.begin() );
         pii coors = best.second;
 
-        if( abs(best.first - pots_v[coors.first][coors.second] ) > 1e-9 || router_placed[coors.fi][coors.se]) {
+        if( abs(best.first - pots_v[coors.first][coors.second] ) > 1e-9 ) {
             continue;
         }
-        router_placed[coors.fi][coors.se] = true;
 
         place_router( covered, coors );
         double poten = best.first;
-       // cerr << "Current poten: " << poten << endl;
+        //cerr << "Current poten: " << poten << endl;
         router_ans.push_back( coors );
         remain_budget -= price_r;
 
-        for( int dx = -r; dx <= r; dx++) {
-            for( int dy = -r; dy <= r; dy++ ) {
+        for( int dx = -2 * r - 1; dx <= 2 * r + 1; dx++) {
+            for( int dy = -2 * r - 1; dy <= 2 * r + 1; dy++ ) {
                 pii coor = make_pair( coors.first + dx, coors.second + dy );
                 if( !val_coor( coor.first, coor.second ) ) {
                     continue;
@@ -414,6 +411,7 @@ int main(int argc, const char * argv[]) {
     
     read_input();
     solve();
+    cerr << h << " " << w << endl;
     /*
     cerr <<router_ans.size() << endl;
     for (pii router : router_ans)
