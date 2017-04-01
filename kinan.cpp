@@ -157,7 +157,7 @@ vector <pii> get_covered(pii router) {
 
 vector <pii> get_all_covered(const vector <pii> & routers) {
     vector <vector<bool> > covered(h);
-    forn(j, w)
+    forn(j, h)
         covered[j].resize(w);
     for (pii router : routers) {
         auto newly_covered = get_covered(router);
