@@ -30,6 +30,8 @@ typedef long long ll;
 #define fore(i, b, e) for (int i = (int)b; i <= (int)e; i++)
 
 const int MAX_N = 10005;
+const int DX[8] = {-1, -1, -1, 0, 0, 1, 1, 1};
+const int DY[8] = {-1, 0, 1, -1, 1, -1, 0, 1};
 
 int h, w, r;
 int price_b, price_r, budget;
@@ -48,6 +50,10 @@ void read_input()
     }
 }
 
+bool valid_coords(pii p) {
+    return p.fi >= 0 && p.fi < h && p.se >= 0 && p.se < w;
+}
+
 void validate() {
     int n = backbone_ans.size();
     int m = router_ans.size();
@@ -55,13 +61,31 @@ void validate() {
     set<pii> uniq_r(router_ans.begin(), router_ans.end());
     assert(n == uniq_b.size() && "backbones should be unique");
     assert(m == uniq_r.size() && "routers should be unique");
+    assert(uniq_b.find(initial_backbone) == uniq_b.end() && "backbones shouldn't contain initial cell");
     for (auto p : backbone_ans) {
-        assert(p.fi >= 0 && p.fi < h && "backbones coords must be in range");
-        assert(p.se >= 0 && p.se < w && "backbones coords must be in range");
+        assert(valid_coords(p) && "backbone coords must be in range");
     }
     for (auto p : router_ans) {
-        assert(p.fi >= 0 && p.fi < h && "router coords must be in range");
-        assert(p.se >= 0 && p.se < w && "router coords must be in range");
+        assert(valid_coords(p) && "router coords must be in range");
+    }
+    bool backbone[MAX_N][MAX_N] = {false};
+    backbone[initial_backbone.fi][initial_backbone.se] = true;
+    for (auto p : backbone_ans) {
+        int x = p.fi;
+        int y = p.se;
+        bool good = false;
+        for (int d = 0; d < 8; d++) {
+            int nx = x + DX[d];
+            int ny = y + DY[d];
+            if (!valid_coords(mp(nx, ny))) {
+                continue;
+            }
+            if (backbone[nx][ny]) {
+                good = true;
+                break;
+            }
+        }
+        assert(good && "backbones must be connected");
     }
 }
 
