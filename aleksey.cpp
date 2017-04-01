@@ -36,7 +36,6 @@ int p[(int)1e6]; //add this
 const int MAX_ADDITIONAL_ROUTERS = 100;
 
 const int MAX_N = 1005;
-const double routers_part_of_budget = 0.85;
 const int DX[8] = {-1, -1, -1, 0, 0, 1, 1, 1};
 const int DY[8] = {-1, 0, 1, -1, 1, -1, 0, 1};
 
@@ -45,7 +44,10 @@ int price_b, price_r, budget;
 pii initial_backbone;
 string layout[MAX_N];
 
-set<pii> builded_backbones;
+int dist_to_backbone[MAX_N][MAX_N];
+
+bool backbone_map[MAX_N][MAX_N]; // DIMA
+
 vector<pii> backbone_ans, router_ans;
 
 int sum[MAX_N][MAX_N];
@@ -57,9 +59,42 @@ int sum[MAX_N][MAX_N];
 // -------------- FORWARD DECLARATIONS ------------------
 int calc_cost();
 vector <pii> get_all_covered(const vector <pii> & routers);
+void build_backbones(bool optimize);
+bool val_coor(int x, int y);
 // ----------------------------------------------
 
 
+
+
+void calc_all_dist() {
+    queue <pii> Q;
+    forn(i, h)
+        forn(j, w)
+            if (backbone_map[i][j]) {
+                Q.push(mp(i, j));
+                dist_to_backbone[i][j] = 0;
+            }
+    while(!Q.empty()) {
+        pii cur = Q.front();
+        Q.pop();
+        forn(move, 8) {
+            int x = cur.fi + DX[move];
+            int y = cur.se + DY[move];
+            int newd = dist_to_backbone[cur.fi][cur.se] + 1;
+            if (!val_coor(x, y) || dist_to_backbone[x][y] <= newd || layout[x][y] == '#')
+                continue;
+            dist_to_backbone[x][y] = newd;
+            Q.push(mp(x, y));
+        }
+    }
+}
+
+
+
+void recalc_dist() {
+    build_backbones(false);
+    calc_all_dist();
+}
 
 
 
@@ -79,6 +114,10 @@ void read_input()
         cin >> layout[i];
     }
     precalc();
+    forn(i, h)
+        forn(j, w)
+            dist_to_backbone[i][j] = inf;
+    recalc_dist();
 }
 
 bool valid_coords(pii p) {
@@ -86,8 +125,8 @@ bool valid_coords(pii p) {
 }
 
 void validate() {
-    int n = backbone_ans.size();
-    int m = router_ans.size();
+    int n = (int)backbone_ans.size();
+    int m = (int)router_ans.size();
     set<pii> uniq_b(backbone_ans.begin(), backbone_ans.end());
     set<pii> uniq_r(router_ans.begin(), router_ans.end());
     assert(n == (int)uniq_b.size() && "backbones should be unique");
@@ -122,13 +161,18 @@ void validate() {
     assert(calc_cost() <= budget && "must not exceed budget");
 }
 
+
+bool val_coor( int r, int c ) {
+    return r >= 0 && r < h && c >= 0 && c < w;
+}
+
 int calc_cost() {
-    return backbone_ans.size() * price_b + router_ans.size() * price_r;
+    return (int)backbone_ans.size() * price_b + (int)router_ans.size() * price_r;
 }
 
 int calc_result()
 {
-    return 1000 * get_all_covered(router_ans).size() + (budget - calc_cost());
+    return 1000 * (int)get_all_covered(router_ans).size() + (budget - calc_cost());
 }
 
 void print_vpii(const vector<pii>& v) {
@@ -180,11 +224,12 @@ vector <pii> get_all_covered(const vector <pii> & routers) {
     return result;
 }
 
+
 void place_router(vector <vector<bool> > & covered, pii router) {
     auto newly_covered = get_covered(router);
-    fprintf(stderr, "newly_covered size %d\n", (int)newly_covered.size());
     for (pii cell : newly_covered)
         covered[cell.fi][cell.se] = true;
+    recalc_dist();
 }
 
 
@@ -192,7 +237,7 @@ int get_dist(const pii &a, const pii &b) { //add this
     return max(abs(a.fi - b.fi), abs(a.se - b.se));
 }
 
-void build_dist(pii a, const pii &b) {
+void build_dist(pii a, const pii &b) { // DIMA
     int x = abs(a.fi - b.fi);
     int y = abs(a.se - b.se);
     while (x != y) {
@@ -201,27 +246,29 @@ void build_dist(pii a, const pii &b) {
         } else {
             a.se += (b.se - a.se) / y--;
         }
-        if (builded_backbones.find(a) == builded_backbones.end()) {
+        if (!backbone_map[a.fi][a.se]) {
             backbone_ans.push_back(a);
-            builded_backbones.insert(a);
+            backbone_map[a.fi][a.se] = true;
         }
     }
     while (x != 0) {
         a.fi += (b.fi - a.fi) / x;
         a.se += (b.se - a.se) / x;
-        if (builded_backbones.find(a) == builded_backbones.end()) {
+        if (!backbone_map[a.fi][a.se]) {
             backbone_ans.push_back(a);
-            builded_backbones.insert(a);
+            backbone_map[a.fi][a.se] = true;
         }
         x--;
     }
 }
 
 
-int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { //add this
-    backbone_ans.clear();
-    builded_backbones.clear();
-    
+
+int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { // HERE YOBA
+    if (build) {
+        backbone_ans.clear();
+        memset(backbone_map, 0, sizeof(backbone_map));
+    }
     int n = (int)router_ans.size() + (int)additional.size();
     int ans = 0;
     memset(d, 0x3f, n * sizeof(int));
@@ -278,83 +325,81 @@ int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { /
 
 
 
-void build_backbones() { //add this
-    /*
-    cerr <<"Number of routesrs: " << router_ans.size() << endl;
-    for(int i = 0; i < router_ans.size(); i++) {
-        cerr <<router_ans[i].fi << " " << router_ans[i].se << endl;
-    }
-    */
+void build_backbones(bool optimize = false) { // HERE YOBA
     router_ans.push_back(initial_backbone);
     
     vector<pii> additional;
     int cur_ans = get_tree_size(additional, inf);
-    backbone_ans.clear();
-    cerr << "0. Current backbones price = " <<cur_ans << endl;
     
-    /*bool update = true;
-    for(int k = 0; k < MAX_ADDITIONAL_ROUTERS && update; k++) {
-        update = false;
-        int mxi, mxj;
+    if (optimize) {
+        priority_queue<pair<int, pii> > potentional;
+        
         additional.push_back(mp(0, 0));
         forn(i, h) {
+            if (i > 0 && (i+1) % 10 == 0) {
+                cerr << i+1 << "/" << h << " rows done" << endl;
+            }
             forn(j, w) {
-                additional[k] = mp(i, j);
+                additional[0] = mp(i, j);
                 int cur = get_tree_size(additional, cur_ans);
                 if (cur_ans > cur) {
-                    update = true;
-                    mxi = i;
-                    mxj = j;
-                    cur_ans = cur;
+                    potentional.push({cur, {i, j}});
                 }
             }
         }
-        additional[k] = mp(mxi, mxj);
-        cerr << k+1 << ". Current backbones price = " << cur_ans << endl;
-        if (!update) {
-            cerr << "Break" << endl;
-            additional.pop_back();
+        additional.pop_back();
+        
+        
+        for(int k = 0; k < MAX_ADDITIONAL_ROUTERS && additional.size() > 0;) {
+            additional.push_back(potentional.top().se);
+            potentional.pop();
+            int cur = get_tree_size(additional, cur_ans);
+            if (cur_ans > cur) {
+                cur_ans = cur;
+                k++;
+            } else {
+                additional.pop_back();
+            }
         }
-    }*/
-    
+    }
     get_tree_size(additional, inf, true);
     router_ans.pop_back();
 }
-
 vector <pii> get_covered(pii router, const vector <vector<bool> >& covered ) {
     vector <pii> result;
     fore(x, max(router.fi - r, 0), min(router.fi + r, h - 1))
-        fore(y, max(router.se - r, 0), min(router.se + r, w - 1)) {
-            if (layout[x][y] == '.' && no_walls(mp(x, y), router) && !covered[x][y])
-                result.pb(mp(x, y));
-        }
+    fore(y, max(router.se - r, 0), min(router.se + r, w - 1)) {
+        if (layout[x][y] == '.' && no_walls(mp(x, y), router) && !covered[x][y])
+            result.pb(mp(x, y));
+    }
     return result;
 }
 
+pii last;
+
 double calc_pot(int covered, int dist) {
+    //return covered - 10. / (1 + dist);
     return covered;
 }
 
-bool val_coor( int r, int c ) {
-    return r >= 0 && r < h && c >= 0 && c < w;
-}
 
 double calc_poten( pii place, const vector<vector<bool> >& covered )
 {
     int covered1 = get_covered( place, covered ).size();
-    int backbone_dist = get_dist( place, initial_backbone );
-    return -calc_pot( covered1, backbone_dist );
+    int backbone_dist = dist_to_backbone[place.fi][place.se];
+    return -calc_pot( covered1, backbone_dist ) - 1. / get_dist(place, last);
 }
 
-void solve()
+int get_cur_budget() {
+    return price_r * router_ans.size() + price_b * backbone_ans.size(); 
+}
+
+void solve( vector<vector<bool> >& covered )
 {
-    vector<vector<bool>> covered(h);
     vector<vector<double>> pots_v(h);
     forn(i, h) {
-        covered[i].resize(w);
         pots_v[i].resize(w);
     }
-    int router_budget = (int)budget * routers_part_of_budget;
     
     set< pair< double, pii> > pots;
     for( int i = 0; i < h; i++ ) {
@@ -366,28 +411,34 @@ void solve()
             }
         }
     }
-
-    int remain_budget = router_budget;
+   
+    vector <vector<bool> > router_here(h);
+    forn(j, h)
+        router_here[j].resize(w);
     
-    while( remain_budget >= price_r ) {
+    last = mp(h / 2, w / 2);
+
+    while(get_cur_budget() < budget - 1.5 * price_r ) {
         pair<double, pii> best = *pots.begin();
         pots.erase( pots.begin() );
         pii coors = best.second;
-
+        
         if( abs(best.first - pots_v[coors.first][coors.second] ) > 1e-9 ) {
             continue;
         }
-
+        
+        if (best.fi == 0)
+            break;
         place_router( covered, coors );
-        double poten = best.first;
-        //cerr << "Current poten: " << poten << endl;
+        cerr << "Current poten: " << best.fi << endl;
         router_ans.push_back( coors );
-        remain_budget -= price_r;
-
-        for( int dx = -2 * r - 1; dx <= 2 * r + 1; dx++) {
-            for( int dy = -2 * r - 1; dy <= 2 * r + 1; dy++ ) {
+        router_here[coors.fi][coors.se] = true;
+        last = coors;
+        
+        for( int dx = -2 * r; dx <= 2 * r; dx++) {
+            for( int dy = -2 * r; dy <= 2 * r; dy++ ) {
                 pii coor = make_pair( coors.first + dx, coors.second + dy );
-                if( !val_coor( coor.first, coor.second ) ) {
+                if( !val_coor( coor.first, coor.second )  || router_here[coor.first][coor.se]) {
                     continue;
                 }
                 double cost = calc_poten( coor, covered );
@@ -396,6 +447,48 @@ void solve()
             }
         }
     }
+}
+
+void remove_fucking_routers( double remove_ratio )
+{
+    vector<vector<bool>> covered;
+    vector<pii> effi;
+    for( int i = 0; i < router_ans.size(); i++ ) {
+        vector<pii> routers = router_ans;
+        pii router = routers[i];
+        routers.erase( routers.begin() + i );
+        vector<pii> covered1 = get_all_covered( routers );
+        covered.assign( h, vector<bool>(w, false ) );
+        for( int j = 0; j < covered1.size(); j++ ) {
+            covered[covered1[j].first][covered1[j].second] = true;
+        }
+        vector<pii> router_covered = get_covered( router );
+        int num_points = 0;
+        for( int j = 0; j < router_covered.size(); j++ ) {
+            if( !covered[router_covered[j].first][router_covered[j].second] ) {
+                num_points++;
+            }
+        }
+
+        effi.push_back( make_pair(num_points, i) );
+    }
+
+    sort( effi.rbegin(), effi.rend() );
+
+    vector<pii> new_routers;
+    for( int i = 0; i < remove_ratio * router_ans.size(); i++ ) {
+        new_routers.push_back( router_ans[ effi[i].second ] );
+    }
+
+    router_ans.clear();
+
+    covered.assign( h, vector<bool>(w, false ) );
+    for( int i = 0; i < new_routers.size(); i++ ) {
+        place_router( covered, new_routers[i] );
+        router_ans.push_back(new_routers[i]);
+    }
+
+    solve( covered );
 }
 
 int main(int argc, const char * argv[]) {
@@ -410,14 +503,43 @@ int main(int argc, const char * argv[]) {
     freopen( (name + ".out").c_str(), "w", stdout );
     
     read_input();
-    solve();
+
+    vector<vector<bool>> covered(h);
+    forn(i, h) {
+        covered[i].resize(w);
+    }
+
+    solve( covered );
+
+    int current_result = calc_result();
+
+    cerr << "Current result " << current_result << endl;
+
+    int NUM_ITERS = 100;
+
+    int best_result = current_result;
+    for( int i = 0; i < NUM_ITERS; i++ ) {
+        cerr << "Removing iteration " << i << endl;
+        vector<pii> old_ans = router_ans;
+        double ratio = 0.5 + (((double) rand() / (RAND_MAX)) / 2);
+        remove_fucking_routers( ratio );
+        current_result = calc_result();
+        cerr << "Current result " << current_result << endl;
+
+        if( current_result < best_result ) {
+            router_ans = old_ans;
+        } else {
+            best_result = current_result;
+        }
+    }
+    
     cerr << h << " " << w << endl;
     /*
-    cerr <<router_ans.size() << endl;
-    for (pii router : router_ans)
-        fprintf(stderr, "router %d %d\n", router.fi, router.se);
-        */
-    build_backbones();
+     cerr <<router_ans.size() << endl;
+     for (pii router : router_ans)
+     fprintf(stderr, "router %d %d\n", router.fi, router.se);
+     */
+    build_backbones(false);
     write_result();
     validate();
     int result = calc_result();
