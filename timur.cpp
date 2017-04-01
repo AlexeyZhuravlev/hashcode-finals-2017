@@ -48,7 +48,7 @@ string layout[MAX_N];
 
 bool backbone_map[MAX_N][MAX_N]; // DIMA
 
-vector<pii> potentionals;
+vector<pii> potentionals, good_additionals;
 
 vector<pii> backbone_ans, router_ans;
 
@@ -294,8 +294,8 @@ void build_backbones(bool optimize = false) { // HERE YOBA
     vector<pii> additional;
     int cur_ans = get_tree_size(additional, inf);
     
-    cerr << "0. Current backbones count = " <<cur_ans << endl;
     if (optimize) {
+        cerr << "0. Current backbones count = " <<cur_ans << endl;
         if (potentionals.size() == 0) {
             priority_queue<pair<int, pii> > potentional;
         
@@ -337,22 +337,25 @@ void build_backbones(bool optimize = false) { // HERE YOBA
                 potentionals.push_back(potentional.top().se);
                 potentional.pop();
             }
-        }
-        additional.pop_back();
-        
-        for(int k = 0, i = 0; i < potentionals.size();i++) {
-            additional.push_back(potentionals[i]);
+            additional.pop_back();
             
-            int cur = get_tree_size(additional, cur_ans);
-            if (cur_ans > cur) {
-                cur_ans = cur;
-                k++;
-                if (k % 10 == 0) {
-                    cerr << k << ". Current backbones count = " << cur_ans << ", potentional = " << i+1 << "/" << potentionals.size() << endl;
+            for(int k = 0, i = 0; i < potentionals.size();i++) {
+                additional.push_back(potentionals[i]);
+                
+                int cur = get_tree_size(additional, cur_ans);
+                if (cur_ans > cur) {
+                    cur_ans = cur;
+                    k++;
+                    if (k % 10 == 0) {
+                        cerr << k << ". Current backbones count = " << cur_ans << ", potentional = " << i+1 << "/" << potentionals.size() << endl;
+                    }
+                } else {
+                    additional.pop_back();
                 }
-            } else {
-                additional.pop_back();
             }
+            good_additionals = additional;
+        } else {
+            additional = good_additionals;
         }
     }
     get_tree_size(additional, inf, true);
