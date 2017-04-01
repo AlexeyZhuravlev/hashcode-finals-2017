@@ -375,9 +375,11 @@ vector <pii> get_covered(pii router, const vector <vector<bool> >& covered ) {
     return result;
 }
 
+pii last;
+
 double calc_pot(int covered, int dist) {
-    return covered - 1. / (1 + dist);
-    //return covered;
+    //return covered - 10. / (1 + dist);
+    return covered;
 }
 
 
@@ -385,7 +387,7 @@ double calc_poten( pii place, const vector<vector<bool> >& covered )
 {
     int covered1 = get_covered( place, covered ).size();
     int backbone_dist = dist_to_backbone[place.fi][place.se];
-    return -calc_pot( covered1, backbone_dist );
+    return -calc_pot( covered1, backbone_dist ) - 1. / get_dist(place, last);
 }
 
 int get_cur_budget() {
@@ -415,6 +417,7 @@ void solve()
     vector <vector<bool> > router_here(h);
     forn(j, h)
         router_here[j].resize(w);
+    last = mp(h / 2, w / 2);
     while(get_cur_budget() < budget - 1.5 * price_r ) {
         pair<double, pii> best = *pots.begin();
         pots.erase( pots.begin() );
@@ -430,6 +433,7 @@ void solve()
         cerr << "Current poten: " << best.fi << endl;
         router_ans.push_back( coors );
         router_here[coors.fi][coors.se] = true;
+        last = coors;
         
         for( int dx = -2 * r; dx <= 2 * r; dx++) {
             for( int dy = -2 * r; dy <= 2 * r; dy++ ) {
