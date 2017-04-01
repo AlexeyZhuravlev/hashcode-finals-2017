@@ -415,7 +415,9 @@ void solve( vector<vector<bool> >& covered )
     vector <vector<bool> > router_here(h);
     forn(j, h)
         router_here[j].resize(w);
+    
     last = mp(h / 2, w / 2);
+
     while(get_cur_budget() < budget - 1.5 * price_r ) {
         pair<double, pii> best = *pots.begin();
         pots.erase( pots.begin() );
@@ -514,12 +516,23 @@ int main(int argc, const char * argv[]) {
     cerr << "Current result " << current_result << endl;
 
     int NUM_ITERS = 20;
+
+    int best_result = current_result;
     for( int i = 0; i < NUM_ITERS; i++ ) {
         cerr << "Removing iteration " << i << endl;
-        remove_fucking_routers( 0.5 );
+        vector<pii> old_ans = router_ans;
+        double ratio = ((double) rand() / (RAND_MAX));
+        remove_fucking_routers( ratio );
         current_result = calc_result();
         cerr << "Current result " << current_result << endl;
+
+        if( current_result < best_result ) {
+            router_ans = old_ans;
+        } else {
+            best_result = current_result;
+        }
     }
+    
     cerr << h << " " << w << endl;
     /*
      cerr <<router_ans.size() << endl;
