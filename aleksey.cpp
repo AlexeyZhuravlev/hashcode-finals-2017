@@ -36,7 +36,7 @@ int p[(int)1e6]; //add this
 const int MAX_ADDITIONAL_ROUTERS = 100;
 
 const int MAX_N = 1005;
-const double routers_part_of_budget = 0.95;
+const double routers_part_of_budget = 0.9;
 const int DX[8] = {-1, -1, -1, 0, 0, 1, 1, 1};
 const int DY[8] = {-1, 0, 1, -1, 1, -1, 0, 1};
 
@@ -282,7 +282,7 @@ int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { /
 
 void build_backbones() { //add this
     cerr <<"Number of routesrs: " << router_ans.size() << endl;
-    for(int i = 0; i < router_ans.size(); i++) {
+    for(int i = 0; i < (int)router_ans.size(); i++) {
         cerr <<router_ans[i].fi << " " << router_ans[i].se << endl;
     }
     router_ans.push_back(initial_backbone);
@@ -332,7 +332,6 @@ vector <pii> get_covered(pii router, const vector <vector<bool> >& covered ) {
 }
 
 double calc_pot(int covered, int dist) {
-    double con = 0.00000001;
     return covered;
 }
 
@@ -369,15 +368,18 @@ void solve()
     }
 
     int remain_budget = router_budget;
-    
+    vector<vector<bool>> router_placed(h);
+    forn(j, h)
+        router_placed[j].resize(w);
     while( remain_budget >= price_r ) {
         pair<double, pii> best = *pots.begin();
         pots.erase( pots.begin() );
         pii coors = best.second;
 
-        if( abs(best.first - pots_v[coors.first][coors.second] ) > 1e-9 ) {
+        if( abs(best.first - pots_v[coors.first][coors.second] ) > 1e-9 || router_placed[coors.fi][coors.se]) {
             continue;
         }
+        router_placed[coors.fi][coors.se] = true;
 
         place_router( covered, coors );
         double poten = best.first;
@@ -412,10 +414,6 @@ int main(int argc, const char * argv[]) {
     
     read_input();
     solve();
-    cerr << h << " " << w << endl;
-    cerr <<router_ans.size() << endl;
-    for (pii router : router_ans)
-        fprintf(stderr, "router %d %d\n", router.fi, router.se);
     build_backbones();
     write_result();
     validate();
