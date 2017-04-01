@@ -40,6 +40,28 @@ string layout[MAX_N];
 
 vector<pii> backbone_ans, router_ans;
 
+int sum[MAX_N][MAX_N];
+
+
+
+
+
+// -------------- FORWARD DECLARATIONS ------------------
+int calc_cost();
+vector <pii> get_all_covered(const vector <pii> & routers);
+// ----------------------------------------------
+
+
+
+
+
+void precalc() {
+    forn(i, h)
+        forn(j, w)
+            sum[i][j] = (layout[i][j] == '#') + (i == 0 ? 0 : sum[i - 1][j])
+                    + (j == 0 ? 0 : sum[i][j - 1]) - (i == 0 || j == 0 ? 0 : sum[i - 1][j - 1]);
+}
+
 void read_input()
 {
     cin >> h >> w >> r;
@@ -48,6 +70,7 @@ void read_input()
     for (int i = 0; i < h; i++) {
         cin >> layout[i];
     }
+    precalc();
 }
 
 bool valid_coords(pii p) {
@@ -85,25 +108,74 @@ void validate() {
                 break;
             }
         }
+        backbone[x][y] = true;
         assert(good && "backbones must be connected");
     }
-    int cost = backbone_ans.size() * price_b + router_ans.size() * price_r;
-    assert(cost <= budet && "must not exceed budget");
+    assert(calc_cost() <= budget && "must not exceed budget");
+}
+
+int calc_cost() {
+    return backbone_ans.size() * price_b + router_ans.size() * price_r;
+}
+
+int calc_result()
+{
+    return 1000 * get_all_covered(router_ans).size() + (budget - calc_cost());
+}
+
+void print_vpii(const vector<pii>& v) {
+    cout << v.size() << endl;
+    for (const auto& p : v) {
+        cout << p.fi << " " << p.se << endl;
+    }
 }
 
 void write_result()
 {
-    cout << c;
+    print_vpii(backbone_ans);
+    print_vpii(router_ans);
+}
+
+bool no_walls(pii corner1, pii corner2) {
+    int x_max = max(corner1.fi, corner2.fi);
+    int x_min = min(corner1.fi, corner2.fi);
+    int y_max = max(corner1.se, corner2.se);
+    int y_min = min(corner1.se, corner2.se);
+    return sum[x_max][y_max] - (y_min == 0 ? 0 : sum[x_max][y_min - 1])
+        - (x_min == 0 ? 0 : sum[x_min - 1][y_max]) + (y_min == 0 || x_min == 0 ? 0 : sum[x_min - 1][y_min - 1]) == 0;
+}
+
+vector <pii> get_covered(pii router) {
+    vector <pii> result;
+    fore(x, max(router.fi - r, 0), min(router.fi + r, h - 1))
+        fore(y, max(router.se - r, 0), min(router.se + r, w - 1)) {
+            if (layout[x][y] == '.' && no_walls(mp(x, y), router))
+                result.pb(mp(x, y));
+        }
+    return result;
+}
+
+vector <pii> get_all_covered(const vector <pii> & routers) {
+    vector <vector<bool> > covered(h);
+    forn(j, w)
+        covered[j].resize(w);
+    for (pii router : routers) {
+        auto newly_covered = get_covered(router);
+        for (pii cell : newly_covered)
+            covered[cell.fi][cell.se] = true;
+    }
+    vector <pii> result;
+    forn(i, h)
+        forn(j, w)
+            if (covered[i][j])
+                result.pb(mp(i, j));
+    return result;
 }
 
 void solve()
 {
-    c = a + b;
-}
-
-double calc_result()
-{
-    return a + b;
+    backbone_ans = {{3, 6}, {3, 8}, {3, 9}};
+    router_ans = {{3, 6}, {3, 9}};
 }
 
 int main(int argc, const char * argv[]) {
@@ -119,8 +191,9 @@ int main(int argc, const char * argv[]) {
     
     read_input();
     solve();
-    double result = calc_result();
     write_result();
+    validate();
+    int result = calc_result();
     
     cerr << result << std::endl;
     
