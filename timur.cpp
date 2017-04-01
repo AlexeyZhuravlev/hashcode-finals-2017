@@ -1,3 +1,17 @@
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <vector>
+#include <iostream>
+#include <cassert>
+#include <cmath>
+#include <string>
+#include <queue>
+#include <set>
+#include <map>
+#include <cstdlib>
+#include <cassert>
+
 using namespace std;
 
 typedef vector<int> vi;
@@ -20,6 +34,7 @@ const int MAX_N = 10005;
 const int inf = (int)1e9; //add this
 bool used[(int)1e6]; //add this
 int d[(int)1e6]; //add this
+int p[(int)1e6]; //add this
 const int MAX_ADDITIONAL_ROUTERS = 100;
 
 int h, w, r;
@@ -33,7 +48,7 @@ int get_dist(const pii &a, const pii &b) { //add this
     return max(abs(a.fi - b.fi), abs(a.se - b.se));
 }
 
-void build_dist(const pii &a, const pii &b) {
+void build_dist(pii a, const pii &b) {
     int x = abs(a.fi - b.fi);
     int y = abs(a.se - b.se);
     while (x != y) {
@@ -52,11 +67,11 @@ void build_dist(const pii &a, const pii &b) {
     }
 }
 
-int get_tree_size(const vector<pii> &additional, int mx, bool int build = false) { //add this
+int get_tree_size(const vector<pii> &additional, int mx, bool build = false) { //add this
     int n = (int)router_ans.size() + (int)additional.size();
     int ans = 0;
-    memset(d, 0x3f, n * sizeof(int))
-    memset(used, 0, n * sizeof(bool))
+    memset(d, 0x3f, n * sizeof(int));
+    memset(used, 0, n * sizeof(bool));
     d[router_ans.size()-1] = 0;
     for(int i = 0; i < n; i++) {
         int mn = inf;
@@ -76,7 +91,7 @@ int get_tree_size(const vector<pii> &additional, int mx, bool int build = false)
         if (mni < router_ans.size()) {
             mnpoint = router_ans[mni];
         } else {
-            mnpoint = additional[mni - router_ans.size()]
+            mnpoint = additional[mni - router_ans.size()];
         }
         
         if (build) {
@@ -84,21 +99,22 @@ int get_tree_size(const vector<pii> &additional, int mx, bool int build = false)
             if (p[mni] < router_ans.size()) {
                 last = router_ans[p[mni]];
             } else {
-                last = additional[p[mni] - router_ans.size()]
+                last = additional[p[mni] - router_ans.size()];
             }
             build_dist(last, mnpoint);
         }
         
         
         for(int j = 0; j < router_ans.size(); j++) {
-            if (!used[j]) {
-                d[j] = min(d[j], get_dist(mnpoint, router_ans[j])));
+            if (!used[j] && d[j+router_ans.size()] > get_dist(mnpoint, router_ans[j])) {
+                d[j] = get_dist(mnpoint, router_ans[j]);
+                p[j] = mni;
             }
         }
         for(int j = 0; j < additional.size(); j++) {
-            if (!used[j+router_ans.size()]) {
-                d[j+router_ans.size()] = min(d[j+router_ans.size()],
-                                             get_dist(mnpoint, additional[j])));
+            if (!used[j+router_ans.size()] && d[j+router_ans.size()] > get_dist(mnpoint, additional[j])) {
+                d[j+router_ans.size()] = get_dist(mnpoint, additional[j]);
+                p[j+router_ans.size()] = mni;
             }
         }
     }
@@ -109,7 +125,7 @@ void build_backbones() { //add this
     router_ans.push_back(initial_backbone);
     
     vector<pii> additional;
-    int cur_ans = get_tree_size(additional);
+    int cur_ans = get_tree_size(additional, inf);
     backbone_ans.clear();
     cerr << "0. Current backbones price = " <<cur_ans << endl;
     
@@ -121,7 +137,7 @@ void build_backbones() { //add this
         forn(i, h) {
             forn(j, w) {
                 additional[k] = mp(i, j);
-                int cur = get_tree_size(additional,cur_ans);
+                int cur = get_tree_size(additional, cur_ans);
                 if (cur_ans > cur) {
                     update = true;
                     mxi = i;
@@ -136,8 +152,8 @@ void build_backbones() { //add this
         }
     }
     
-    build_tree(additional);
-    router_ans.pop_back(initial_backbone);
+    get_tree_size(additional, inf, true);
+    router_ans.pop_back();
 }
 
 void read_input()
@@ -151,8 +167,8 @@ void read_input()
 }
 
 void validate() {
-    int n = backbone_ans.size();
-    int m = router_ans.size();
+    int n = (int)backbone_ans.size();
+    int m = (int)router_ans.size();
     set<pii> uniq_b(backbone_ans.begin(), backbone_ans.end());
     set<pii> uniq_r(router_ans.begin(), router_ans.end());
     assert(n == uniq_b.size() && "backbones should be unique");
